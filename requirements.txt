@@ -1,0 +1,4 @@
+flask
+flask-limiter
+gunicorn
+psycopg2-binary

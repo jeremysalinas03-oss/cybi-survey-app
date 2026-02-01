@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>UTRGV Cybersecurity Program Survey</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #000;
+            overflow-x: hidden;
+            color: white;
+        }
+
+        /* ================= GRID BACKGROUND ================= */
+        body:before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(to right, rgba(255, 120, 0, 0.15) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 120, 0, 0.15) 1px, transparent 1px);
+            background-size: 70px 70px;
+            z-index: -10;
+            opacity: 0.35;
+        }
+
+        .node {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #00eaff;
+            border-radius: 50%;
+            box-shadow:
+                0 0 10px #00eaff,
+                0 0 25px #00eaff;
+            animation: pulseNode 2.5s infinite alternate;
+            z-index: -3;
+        }
+
+        @keyframes pulseNode {
+            from { transform: scale(0.8); opacity: 0.6; }
+            to { transform: scale(1.6); opacity: 1; }
+        }
+
+        .ripple-effect {
+            position: fixed;
+            top: -20%;
+            left: -20%;
+            width: 160%;
+            height: 160%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.20) 0%, transparent 70%);
+            animation: rippleMove 8s ease-in-out infinite;
+            z-index: -5;
+        }
+
+        @keyframes rippleMove {
+            0% { transform: scale(0.8); opacity: 0.6; }
+            50% { transform: scale(1.4); opacity: 0.8; }
+            100% { transform: scale(1.0); opacity: 0.6; }
+        }
+
+        /* ================= SLIDESHOW ================= */
+        .slideshow-container {
+            width: 100%;
+            height: 240px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .slider-track {
+            display: flex;
+            width: calc(240px * 14);
+            animation: slide 22s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .slide-img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+        }
+
+        .gradient-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 120px;
+            width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+        }
+
+        /* ================= ORANGE HEADER ================= */
+        .orange-title-bar {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(
+                180deg,
+                rgba(255, 90, 0, 1) 0%,
+                rgba(240, 70, 0, 1) 60%,
+                rgba(180, 55, 0, 1) 100%
+            );
+            position: relative;
+            border-bottom: 4px solid #ff7b00;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            color: white;
+            font-weight: bold;
+        }
+
+        .orange-title-bar h1 {
+            font-size: 38px;
+            letter-spacing: 3px;
+            margin: 0;
+            text-shadow:
+                0 0 8px rgba(255,255,255,0.9),
+                0 0 16px rgba(255,140,0,0.9),
+                0 0 32px rgba(255,120,0,0.7);
+        }
+
+        .orange-title-bar h3 {
+            font-size: 20px;
+            margin-top: 6px;
+            text-shadow: 0 0 6px rgba(255,255,255,0.9);
+        }
+
+        /* ================= SURVEY FORM ================= */
+        .container {
+            width: 70%;
+            margin: 30px auto;
+            background: rgba(255,255,255,0.97);
+            padding: 30px;
+            border-radius: 15px;
+            color: black;
+        }
+
+        fieldset {
+            border: 2px solid #F15A22;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        legend {
+            padding: 0 10px;
+            color: #F15A22;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            resize: vertical;
+            border: 1px solid #bbb;
+        }
+
+        button {
+            background-color: #F15A22;
+            color: white;
+            padding: 12px 26px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+
+        button:hover {
+            background-color: #d94f1f;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="ripple-effect"></div>
+<div class="node" style="top: 18%; left: 20%;"></div>
+<div class="node" style="top: 35%; left: 75%;"></div>
+<div class="node" style="top: 60%; left: 40%;"></div>
+<div class="node" style="top: 80%; left: 15%;"></div>
+
+<!-- SLIDESHOW -->
+<div class="slideshow-container">
+    <div class="slider-track">
+        <img class="slide-img" src="images/cyber.png">
+        <img class="slide-img" src="images/image.png">
+        <img class="slide-img" src="images/image1.png">
+        <img class="slide-img" src="images/image2.png">
+        <img class="slide-img" src="images/image3.png">
+        <img class="slide-img" src="images/image4.png">
+        <img class="slide-img" src="images/v's.png">
+
+        <!-- duplicates -->
+        <img class="slide-img" src="images/cyber.png">
+        <img class="slide-img" src="images/image.png">
+        <img class="slide-img" src="images/image1.png">
+        <img class="slide-img" src="images/image2.png">
+        <img class="slide-img" src="images/image3.png">
+        <img class="slide-img" src="images/image4.png">
+        <img class="slide-img" src="images/v's.png">
+    </div>
+    <div class="gradient-overlay"></div>
+</div>
+
+<!-- ORANGE HEADER (NO ANIMATION) -->
+<div class="orange-title-bar">
+    <h1>UTRGV Cybersecurity Program</h1>
+    <h3>Student Feedback Survey</h3>
+</div>
+
+<!-- SURVEY FORM -->
+<div class="container">
+    <form action="/submit_survey" method="POST">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <fieldset>
+            <legend>1. Program satisfaction</legend>
+            <label><input type="radio" name="q1" value="Excellent"> Excellent</label><br>
+            <label><input type="radio" name="q1" value="Good"> Good</label><br>
+            <label><input type="radio" name="q1" value="Neutral"> Neutral</label><br>
+            <label><input type="radio" name="q1" value="Poor"> Poor</label><br>
+            <label><input type="radio" name="q1" value="Very Poor"> Very Poor</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>2. Course difficulty</legend>
+            <label><input type="radio" name="q2" value="Too easy"> Too easy</label><br>
+            <label><input type="radio" name="q2" value="Just right"> Just right</label><br>
+            <label><input type="radio" name="q2" value="Too hard"> Too hard</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>3. Hands-on usefulness</legend>
+            <label><input type="radio" name="q3" value="Extremely useful"> Extremely useful</label><br>
+            <label><input type="radio" name="q3" value="Very useful"> Very useful</label><br>
+            <label><input type="radio" name="q3" value="Neutral"> Neutral</label><br>
+            <label><input type="radio" name="q3" value="Not useful"> Not useful</label><br>
+            <label><input type="radio" name="q3" value="Useless"> Useless</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>4. Strongest academic areas (select all that apply)</legend>
+            <label><input type="checkbox" name="q4[]" value="Network Security"> Network Security</label><br>
+            <label><input type="checkbox" name="q4[]" value="Cryptography"> Cryptography</label><br>
+            <label><input type="checkbox" name="q4[]" value="Ethical Hacking"> Ethical Hacking</label><br>
+            <label><input type="checkbox" name="q4[]" value="Cloud Security"> Cloud Security</label><br>
+            <label><input type="checkbox" name="q4[]" value="Secure Coding"> Secure Coding</label><br>
+            <label><input type="checkbox" name="q4[]" value="Policy"> Policy & Compliance</label><br>
+            <label><input type="checkbox" name="q4[]" value="Other"> Other</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>5. Topics needing more depth</legend>
+            <textarea name="q5" rows="3"></textarea>
+        </fieldset>
+
+        <fieldset>
+            <legend>6. Program improvements</legend>
+            <textarea name="q6" rows="3"></textarea>
+        </fieldset>
+
+        <fieldset>
+            <legend>7. Career preparation quality</legend>
+            <label><input type="radio" name="q7" value="Very well"> Very well</label><br>
+            <label><input type="radio" name="q7" value="Well"> Well</label><br>
+            <label><input type="radio" name="q7" value="Neutral"> Neutral</label><br>
+            <label><input type="radio" name="q7" value="Not well"> Not well</label><br>
+            <label><input type="radio" name="q7" value="Not at all"> Not at all</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>8. Resource availability</legend>
+            <label><input type="checkbox" name="q8[]" value="Virtual Labs"> Virtual Labs</label><br>
+            <label><input type="checkbox" name="q8[]" value="Hardware"> Hardware</label><br>
+            <label><input type="checkbox" name="q8[]" value="Software Tools"> Software Tools</label><br>
+            <label><input type="checkbox" name="q8[]" value="Online Materials"> Online Materials</label><br>
+            <label><input type="checkbox" name="q8[]" value="Tutoring"> Tutoring</label><br>
+            <label><input type="checkbox" name="q8[]" value="Insufficient"> Insufficient Resources</label>
+        </fieldset>
+
+        <label><strong>9. Program strengths </strong></label><br>
+        <textarea name="q9" rows="3"></textarea><br><br>
+
+        <label><strong>10. Suggested improvements</strong></label><br>
+        <textarea name="q10" rows="5"></textarea><br><br>
+		
+		<fieldset>
+            <legend>11. Class Level</legend>
+            <label><input type="radio" name="q11" value="Freshman"> Freshman</label><br>
+            <label><input type="radio" name="q11" value="Sophomore"> Sophomore</label><br>
+            <label><input type="radio" name="q11" value="Junior"> Junior</label><br>
+            <label><input type="radio" name="q11" value="Senior"> Senior</label><br>
+        </fieldset>
+      
+        <button type="submit">Submit Survey</button>
+    </form>
+</div>
+
+</body>
+</html>
