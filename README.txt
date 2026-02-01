@@ -5,4 +5,4 @@ Put your image files here (same filenames referenced by index.html), e.g.
 - image2.png
 - image3.png
 - image4.png
-- v's.png
+- vs.png
