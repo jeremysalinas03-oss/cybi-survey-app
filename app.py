@@ -13,11 +13,11 @@ from flask import (
     Flask,
     Response,
     abort,
+    redirect,
     render_template_string,
     request,
     send_from_directory,
     session,
-    redirect,
 )
 
 # Optional dependency (enabled via requirements.txt). If missing, app still runs without rate limits.
@@ -47,22 +47,23 @@ app.config.update(
     MAX_CONTENT_LENGTH=64 * 1024,  # 64KB max request body
 )
 
-# Admin password for /results and /export_csv (set in Render env vars)
+# Admin password for /results, /export_csv, and admin delete endpoints
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+
+# Max responses (global cap). Defaults to 500; can be overridden via env var MAX_RESPONSES.
+MAX_RESPONSES = int(os.environ.get("MAX_RESPONSES", "500"))
 
 
 # -----------------------------
 # Database (PostgreSQL on Render)
 # -----------------------------
 def get_conn():
-    """
-    Uses Render's DATABASE_URL.
-    In Render, set DATABASE_URL to the *Internal Database URL* from your Postgres instance.
-    """
+    """Connect using Render's DATABASE_URL."""
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         raise RuntimeError("DATABASE_URL is not set (Render env var).")
-    return psycopg2.connect(db_url)
+    # connect_timeout prevents the app from hanging during cold starts
+    return psycopg2.connect(db_url, connect_timeout=5)
 
 
 def init_db() -> None:
@@ -92,13 +93,17 @@ def init_db() -> None:
     conn.close()
 
 
-# Initialize table at startup
-try:
-    init_db()
-except Exception as e:
-    # Don't crash the whole app during local import if DATABASE_URL isn't set.
-    # Render will have DATABASE_URL set; locally you can export it or ignore DB init.
-    print(f"[WARN] DB init skipped/failed: {e}")
+# Ensure DB/table exists after the server is up (avoids boot hangs)
+@app.before_request
+def ensure_db_once():
+    if getattr(app, "_db_initialized", False):
+        return
+    try:
+        init_db()
+        app._db_initialized = True
+    except Exception as e:
+        # Let the request fail later with a clearer /health error if DB is unavailable
+        print(f"[WARN] DB init failed: {e}")
 
 
 # -----------------------------
@@ -124,7 +129,7 @@ def require_admin(f: Callable[..., Any]) -> Callable[..., Any]:
                 401,
                 {"WWW-Authenticate": 'Basic realm="Survey Admin"'},
             )
-        return f(*args, **kwargs)
+        return f(*args: Any, **kwargs: Any)
 
     return wrapper
 
@@ -166,7 +171,6 @@ def add_security_headers(resp: Response) -> Response:
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    # Light CSP; adjust if you later add external scripts/styles
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "img-src 'self' data:; "
@@ -180,7 +184,6 @@ def add_security_headers(resp: Response) -> Response:
 # -----------------------------
 @app.route("/health")
 def health() -> str:
-    # Also verifies DB connectivity if DATABASE_URL is set
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -199,18 +202,9 @@ def serve_index() -> str:
     return render_template_string(html_text, csrf_token=csrf)
 
 
-@app.route("/admin/delete/<int:response_id>", methods=["POST"])
-@require_admin
-def delete_response(response_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM responses WHERE id = %s", (response_id,))
-    conn.commit()
-    conn.close()
-    return redirect("/results")
-
 @app.route("/images/<path:filename>")
 def images(filename: str):
+    # Your repo must have an images/ folder at the root: images/cyber.png, etc.
     return send_from_directory(os.path.join(BASE_DIR, "images"), filename)
 
 
@@ -218,7 +212,7 @@ def images(filename: str):
 def submit_survey():
     verify_csrf()
 
-    # Light anti-double-submit per browser session
+    # One submission per browser session (basic duplicate submit protection)
     if session.get("submitted") is True:
         return (
             "<h1>Already submitted</h1>"
@@ -241,6 +235,18 @@ def submit_survey():
 
     conn = get_conn()
     cur = conn.cursor()
+
+    # Global cap (default 500)
+    cur.execute("SELECT count(*) FROM responses;")
+    total = cur.fetchone()[0]
+    if total >= MAX_RESPONSES:
+        conn.close()
+        return (
+            "<h1>Survey Closed</h1>"
+            f"<p>The maximum number of responses ({MAX_RESPONSES}) has been reached.</p>"
+            "<a href='/'>Back</a>"
+        )
+
     cur.execute(
         """
         INSERT INTO responses (q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11)
@@ -268,7 +274,10 @@ if limiter:
 def view_results():
     conn = get_conn()
     cur = conn.cursor()
-    cur.execute("SELECT id,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,submitted_at FROM responses ORDER BY id DESC")
+    cur.execute(
+        "SELECT id,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,submitted_at "
+        "FROM responses ORDER BY id DESC"
+    )
     rows = cur.fetchall()
     conn.close()
 
@@ -281,21 +290,35 @@ def view_results():
         "<th>Q7</th><th>Q8</th><th>Q9</th><th>Q10</th><th>Q11</th><th>Submitted</th><th>Delete</th>"
         "</tr>",
     ]
+
     for row in rows:
-    response_id = row[0]  # first column is id
-    cells = "".join([f"<td>{html_lib.escape(str(col))}</td>" for col in row])
+        response_id = row[0]
+        cells = "".join([f"<td>{html_lib.escape(str(col))}</td>" for col in row])
 
-    delete_form = (
-        f"<td>"
-        f"<form method='POST' action='/admin/delete/{response_id}' "
-        f"onsubmit=\"return confirm('Delete submission ID {response_id}?');\">"
-        f"<button type='submit'>Delete</button>"
-        f"</form>"
-        f"</td>"
-    )
+        delete_form = (
+            f"<td>"
+            f"<form method='POST' action='/admin/delete/{response_id}' "
+            f"onsubmit=\"return confirm('Delete submission ID {response_id}?');\">"
+            f"<button type='submit'>Delete</button>"
+            f"</form>"
+            f"</td>"
+        )
 
-    out.append(f"<tr>{cells}{delete_form}</tr>")
+        out.append(f"<tr>{cells}{delete_form}</tr>")
+
+    out.append("</table><br><a href='/'>Back to Survey</a>")
     return "".join(out)
+
+
+@app.route("/admin/delete/<int:response_id>", methods=["POST"])
+@require_admin
+def delete_response(response_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM responses WHERE id = %s", (response_id,))
+    conn.commit()
+    conn.close()
+    return redirect("/results")
 
 
 @app.route("/export_csv")
@@ -326,6 +349,6 @@ def export_csv():
 
 
 if __name__ == "__main__":
-    # Local dev runner (Render uses gunicorn)
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=False)
+
