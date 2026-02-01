@@ -17,6 +17,7 @@ from flask import (
     request,
     send_from_directory,
     session,
+    redirect,
 )
 
 # Optional dependency (enabled via requirements.txt). If missing, app still runs without rate limits.
@@ -198,6 +199,16 @@ def serve_index() -> str:
     return render_template_string(html_text, csrf_token=csrf)
 
 
+@app.route("/admin/delete/<int:response_id>", methods=["POST"])
+@require_admin
+def delete_response(response_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM responses WHERE id = %s", (response_id,))
+    conn.commit()
+    conn.close()
+    return redirect("/results")
+
 @app.route("/images/<path:filename>")
 def images(filename: str):
     return send_from_directory(os.path.join(BASE_DIR, "images"), filename)
@@ -267,12 +278,23 @@ def view_results():
         "<table border='1' cellpadding='6'>",
         "<tr>"
         "<th>ID</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q5</th><th>Q6</th>"
-        "<th>Q7</th><th>Q8</th><th>Q9</th><th>Q10</th><th>Q11</th><th>Submitted</th>"
+        "<th>Q7</th><th>Q8</th><th>Q9</th><th>Q10</th><th>Q11</th><th>Submitted</th><th>Delete</th>"
         "</tr>",
     ]
     for row in rows:
-        out.append("<tr>" + "".join([f"<td>{html_lib.escape(str(col))}</td>" for col in row]) + "</tr>")
-    out.append("</table><br><a href='/'>Back to Survey</a>")
+    response_id = row[0]  # first column is id
+    cells = "".join([f"<td>{html_lib.escape(str(col))}</td>" for col in row])
+
+    delete_form = (
+        f"<td>"
+        f"<form method='POST' action='/admin/delete/{response_id}' "
+        f"onsubmit=\"return confirm('Delete submission ID {response_id}?');\">"
+        f"<button type='submit'>Delete</button>"
+        f"</form>"
+        f"</td>"
+    )
+
+    out.append(f"<tr>{cells}{delete_form}</tr>")
     return "".join(out)
 
 
