@@ -129,7 +129,7 @@ def require_admin(f: Callable[..., Any]) -> Callable[..., Any]:
                 401,
                 {"WWW-Authenticate": 'Basic realm="Survey Admin"'},
             )
-        return f(*args: Any, **kwargs: Any)
+        return f(*args, **kwargs)
 
     return wrapper
 
@@ -351,4 +351,7 @@ def export_csv():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "5000"))
     app.run(host="0.0.0.0", port=port, debug=False)
+
+
+
 
